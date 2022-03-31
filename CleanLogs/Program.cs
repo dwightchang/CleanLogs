@@ -18,7 +18,7 @@ namespace CleanLogs
         /// <summary>
         /// 內定不處理的檔案
         /// </summary>
-        public static string[] _excludeFileExtensions = new string[] { ".dll", ".pdb", ".config", ".json", ".xml", ".exe", ".cs", ".cshtml", ".html", ".js", ".css" };
+        public static string[] _excludeFileExtensions = new string[] { ".dll", ".pdb", ".config", ".json", ".exe", ".cs", ".cshtml", ".html", ".js", ".css" };
 
         static void Main(string[] args)
         {
