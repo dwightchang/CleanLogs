@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CleanLogs
@@ -75,6 +76,7 @@ namespace CleanLogs
 
                         for (int j = 0; j < files.Length; j++)
                         {
+                            Thread.Sleep(300);
                             string filePath = files[j];
                             string fileExtension = Path.GetExtension(filePath).ToLower();
 
