@@ -76,7 +76,6 @@ namespace CleanLogs
 
                         for (int j = 0; j < files.Length; j++)
                         {
-                            Thread.Sleep(300);
                             string filePath = files[j];
                             string fileExtension = Path.GetExtension(filePath).ToLower();
 
@@ -113,7 +112,7 @@ namespace CleanLogs
                                     fileDeleted = true;
                                     System.IO.File.Delete(filePath);
                                     writeLog($"{filePath} was deleted");
-
+                                    Sleep();
                                 }
                                 catch { }
                             }
@@ -159,6 +158,8 @@ namespace CleanLogs
                                         // 壓縮完成後刪除
                                         File.Delete(filePath);
                                         writeLog($"{filePath} was deleted after zipped");
+
+                                        Sleep();
                                     }
                                     catch { }
                                 }
@@ -180,6 +181,11 @@ namespace CleanLogs
                 writeLog(ex.ToString());
             }
         }   // end function
+
+        static void Sleep()
+        {
+            Thread.Sleep(300);
+        }
 
         static void writeLog(string msg)
         {
