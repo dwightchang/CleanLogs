@@ -42,7 +42,7 @@ namespace CleanLogs
             }
             catch(Exception ex)
             {
-                writeLog(ex.ToString());
+                writeLog(ex.ToString(), true);
             }
         }
 
@@ -114,7 +114,10 @@ namespace CleanLogs
                                     writeLog($"{filePath} was deleted");
                                     Sleep();
                                 }
-                                catch { }
+                                catch (Exception ex)
+                                {
+                                    writeLog(ex.ToString(), true);
+                                }
                             }
                             else
                             {
@@ -141,7 +144,7 @@ namespace CleanLogs
                                             zip.AddFile(filePath, "");
 
                                             string fileFolder = Path.GetDirectoryName(filePath);
-                                            string fileName = Path.GetFileName(filePath);  // 包含副檔名
+                                            string fileName = Path.GetFileName(filePath); // 包含副檔名
 
                                             zipFilePath = $"{fileFolder}\\{fileName}.zip";
 
@@ -161,7 +164,10 @@ namespace CleanLogs
 
                                         Sleep();
                                     }
-                                    catch { }
+                                    catch (Exception e)
+                                    {
+                                        writeLog(e.ToString(), true);
+                                    }
                                 }
                                 else
                                 {
@@ -172,13 +178,13 @@ namespace CleanLogs
                     }
                     catch(Exception ex)
                     {
-                        writeLog(ex.ToString());
+                        writeLog(ex.ToString(), true);
                     }
                 }  // end for
             }
             catch (Exception ex)
             {                
-                writeLog(ex.ToString());
+                writeLog(ex.ToString(), true);
             }
         }   // end function
 
@@ -187,11 +193,11 @@ namespace CleanLogs
             Thread.Sleep(300);
         }
 
-        static void writeLog(string msg)
+        static void writeLog(string msg, bool force = false)
         {
             Console.WriteLine(msg);
 
-            if(_writeLog == false)
+            if(!_writeLog && !force)
             {
                 Console.WriteLine("_writeLog false");
                 return;
