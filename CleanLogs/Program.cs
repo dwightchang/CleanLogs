@@ -16,10 +16,6 @@ namespace CleanLogs
         public static bool _writeLog = true;
         public static string _baseDir = "";
         public static string[] _zipFileExtensions = new string[] { ".zip", ".rar", ".7z" };
-        /// <summary>
-        /// 內定不處理的檔案
-        /// </summary>
-        public static string[] _excludeFileExtensions = new string[] { ".dll", ".pdb", ".config", ".json", ".exe", ".cs", ".cshtml", ".html", ".js", ".css" };
 
         static void Main(string[] args)
         {
@@ -38,7 +34,7 @@ namespace CleanLogs
                 var config = JsonConvert.DeserializeObject<AppSetting>(strAppSetting);
                 _writeLog = config.WriteLog;                
 
-                cleanLogFolder(config);
+                CleanLogFolder(config);
             }
             catch(Exception ex)
             {
@@ -50,7 +46,7 @@ namespace CleanLogs
         /// <summary>
         /// 刪除超過期限的檔案,檔案日期=建立及上次寫入時間較大者
         /// </summary>
-        static void cleanLogFolder(AppSetting config)
+        static void CleanLogFolder(AppSetting config)
         {
             try
             {
@@ -66,7 +62,7 @@ namespace CleanLogs
 
                         if (Directory.Exists(folder.LogPath) == false)
                         {
-                            writeLog($"folder {folder.LogPath} not exists");
+                            writeLog($"folder {folder.LogPath} not exists", true);
                             continue;
                         }
 
@@ -74,16 +70,15 @@ namespace CleanLogs
 
                         string[] files = System.IO.Directory.GetFiles(folder.LogPath, "*", SearchOption.AllDirectories);
 
+                        if (!files.Any() && config.DeleteEmptyFolder) // 空資料匣
+                        {
+                            Directory.Delete(folder.LogPath);
+                        }
+
                         for (int j = 0; j < files.Length; j++)
                         {
                             string filePath = files[j];
                             string fileExtension = Path.GetExtension(filePath).ToLower();
-
-                            if (_excludeFileExtensions.Contains(fileExtension))
-                            {
-                                writeLog($"{filePath} 不處理此類型檔案");
-                                continue;
-                            }
 
                             DateTime dtWrite = System.IO.File.GetLastWriteTime(filePath);  // 上次寫入時間
                             DateTime dtCreate = System.IO.File.GetCreationTime(filePath);  // 建立時間,若用複製的,則會變更建立時間,不會改變寫入時間

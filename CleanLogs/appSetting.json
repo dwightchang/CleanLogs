@@ -1,11 +1,12 @@
 {
   "LogFolder": [
-    {
-      "LogPath": "D:\\temp\\Api",
+	{
+      "LogPath": "D:\\temp",
       "PreservedDays": 300,
-      "ZipDays": 1,
+      "ZipDays": 301,
+      "DeleteEmptyFolder": false,
       "FileExtNameInclude": [ "*" ]
     }
   ],
-  "WriteLog": true
+  "WriteLog": false
 }

@@ -9,6 +9,7 @@ namespace CleanLogs.Model
     public class AppSetting
     {
         public bool WriteLog { get; set; }
+        public bool DeleteEmptyFolder { get; set; } = false;
         public List<LogFolder> LogFolder { get; set; }
     }
 }

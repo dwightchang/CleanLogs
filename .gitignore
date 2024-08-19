@@ -6,3 +6,5 @@ CleanLogs/CleanLogs/
 CleanLogs/obj/
 
 packages/
+
+.idea/
