@@ -9,6 +9,12 @@ namespace CleanLogs.Model
     public class AppSetting
     {
         public bool WriteLog { get; set; }
+
+        /// <summary>
+        /// 搬到archive目錄
+        /// </summary>
+        public string ArchivePath { get; set; }
+
         public List<LogFolder> LogFolder { get; set; }
     }
 }

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,12 +23,16 @@ namespace CleanLogs
         /// 內定不處理的資料夾
         /// </summary>
         public static string[] _excludeFolders = new string[] { ".svn", ".git" };
+        
+        private static string _hostIp = "";
 
 
         static void Main(string[] args)
         {
             try
             {
+                _hostIp = GetHostIp();
+                
                 SevenZipBase.SetLibraryPath(
                     Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "lib\\7z.dll"));
                 
@@ -52,6 +57,15 @@ namespace CleanLogs
             }
         }
 
+        static string GetHostIp()
+        {
+            string hostName = Dns.GetHostName();
+            var addresses = Dns.GetHostAddresses(hostName)
+                .Where(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+
+            return addresses.First().ToString();
+        }
+
 
         /// <summary>
         /// 刪除超過期限的檔案,檔案日期=建立及上次寫入時間較大者
@@ -60,7 +74,7 @@ namespace CleanLogs
         {
             try
             {
-                foreach (LogFolder folder in config.LogFolder)
+                foreach (var folder in config.LogFolder)
                 {
                     try
                     {
@@ -77,16 +91,8 @@ namespace CleanLogs
                         }
                         
                         writeLog($"process folder {folder.LogPath}");
-
-                        var subFolders = Directory.GetDirectories(folder.LogPath);
                         
                         CleanFolder(folder.LogPath, folder, config);
-
-                        // sub folders
-                        foreach (var folderPath in subFolders)
-                        {
-                            CleanFolder(folderPath, folder, config);
-                        }
                     }
                     catch (Exception ex)
                     {
@@ -100,14 +106,14 @@ namespace CleanLogs
             }
         }
 
-        static void CleanFolder(string folderPath, LogFolder folder, AppSetting config)
+        static void CleanFolder(string folderPath, LogFolder folderConfig, AppSetting config)
         {
             if (!Directory.Exists(folderPath))
             {
                 return;
             }
 
-            var subFolders = new string[0];
+            string[] subFolders;
             
             try
             {
@@ -121,7 +127,7 @@ namespace CleanLogs
 
             foreach (var subFolder in subFolders)
             {
-                CleanFolder(subFolder, folder, config);
+                CleanFolder(subFolder, folderConfig, config);
             }
             
             string[] files = Directory.GetFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
@@ -131,11 +137,11 @@ namespace CleanLogs
             // ignored folder
             if (_excludeFolders.Any(ef => folderNames.Any(f => f?.ToLower() == ef?.ToLower())))
             {
-                writeLog($"folder {folder.LogPath} was ignored");
+                writeLog($"folder {folderConfig.LogPath} was ignored");
                 return;
             }
 
-            if (!files.Any() && folder.DeleteEmptyFolder) // 空資料匣
+            if (!files.Any() && folderConfig.DeleteEmptyFolder) // 空資料匣
             {
                 try
                 {
@@ -150,38 +156,46 @@ namespace CleanLogs
                 }
             }
 
-            for (int j = 0; j < files.Length; j++)
+            foreach (var filePath in files)
             {
-                string filePath = files[j];
-                string fileExtension = Path.GetExtension(filePath).ToLower();
+                var fileExtension = Path.GetExtension(filePath).ToLower();
 
-                DateTime dtWrite = System.IO.File.GetLastWriteTime(filePath); // 上次寫入時間
-                DateTime dtCreate = System.IO.File.GetCreationTime(filePath); // 建立時間,若用複製的,則會變更建立時間,不會改變寫入時間
+                var dtWrite = System.IO.File.GetLastWriteTime(filePath); // 上次寫入時間
+                var dtCreate = System.IO.File.GetCreationTime(filePath); // 建立時間,若用複製的,則會變更建立時間,不會改變寫入時間
 
-                DateTime dt = (dtCreate.CompareTo(dtWrite) > 0) ? dtCreate : dtWrite;
+                var dt = (dtCreate.CompareTo(dtWrite) > 0) ? dtCreate : dtWrite;
 
-                DateTime lastDatePreserved = DateTime.Now.AddDays(folder.PreservedDays * -1);
-                DateTime zipDate = DateTime.MaxValue;
+                var lastDatePreserved = DateTime.Now.AddDays(folderConfig.PreservedDays * -1);
+                var zipDate = DateTime.MaxValue;
 
-                if (folder.ZipDays > 0)
+                if (folderConfig.ZipDays > 0)
                 {
-                    zipDate = DateTime.Now.AddDays(folder.ZipDays * -1);
+                    zipDate = DateTime.Now.AddDays(folderConfig.ZipDays * -1);
                 }
 
-                if (canDelete(folder, filePath) == false)
+                if (canDelete(folderConfig, filePath) == false)
                 {
                     writeLog($"file {filePath} 副檔名不符合刪除條件");
                     continue;
                 }
 
-                bool fileDeleted = false;
+                var fileDeleted = false;
                 if (dt.CompareTo(lastDatePreserved) < 0)
                 {
                     try
                     {
                         fileDeleted = true;
-                        File.Delete(filePath);
-                        writeLog($"{filePath} was deleted");
+
+                        if (string.IsNullOrEmpty(folderConfig.ArchiveAppName))
+                        {
+                            File.Delete(filePath);
+                            writeLog($"{filePath} was deleted");    
+                        }
+                        else
+                        {
+                            MoveToArchiveFolder(filePath, folderConfig, config);
+                        }
+                        
                         Sleep();
                     }
                     catch (Exception ex)
@@ -233,6 +247,41 @@ namespace CleanLogs
                     }
                 }
             }
+        }
+
+        static void MoveToArchiveFolder(string filePath, LogFolder folderConfig, AppSetting config)
+        {
+            if (string.IsNullOrEmpty(config.ArchivePath) || string.IsNullOrEmpty(folderConfig.ArchiveAppName))
+            {
+                writeLog("ArchivePath or ArchiveAppName is not set, skip moving to archive folder");
+                return;
+            }
+            
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine($"來源檔案不存在: {filePath}");
+                return;
+            }
+            
+            string fileName = Path.GetFileName(filePath);
+            
+            var destFolder = $"{config.ArchivePath.TrimEnd('\\')}\\{_hostIp}\\{folderConfig.ArchiveAppName}";
+            var subFolder = filePath.Replace(fileName, "").Replace(folderConfig.LogPath, "").Trim('\\');
+            
+            if (!string.IsNullOrEmpty(subFolder))
+            {
+                destFolder += $"\\{subFolder}";
+            }
+            
+            if (!Directory.Exists(destFolder))
+            {
+                Directory.CreateDirectory(destFolder);
+            }
+            
+            var destPath = $"{destFolder}\\{fileName}";
+
+            File.Move(filePath, destPath);
+            writeLog($"檔案已搬移到: {destPath}");
         }
 
         static string ZipFile(string filePath)

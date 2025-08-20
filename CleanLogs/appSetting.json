@@ -5,8 +5,11 @@
       "PreservedDays": 300,
       "ZipDays": 301,
       "DeleteEmptyFolder": false,
-      "FileExtNameInclude": [ "*" ]
+      "FileExtNameInclude": [ "*" ],
+      "ArchiveAppName": "CleanLogs"
     }
   ],
-  "WriteLog": false
+  "ArchivePath": "\\\\log.xxx.com\\Logs\\bds.xxx.com",
+  "WriteLog": false,
+  "ReadMe": "ArchivePath範例 \\\\log.xxx.com\\Logs\\[fqdn]\\[ip]\\[ArchiveAppName],其中[ip]會由系統抓出主機的ip,有指定ArchiveAppName時,才會將超過PreservedDays的檔案搬到ArchivePath"
 }

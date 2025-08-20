@@ -19,5 +19,9 @@ namespace CleanLogs.Model
         public int ZipDays { get; set; }
         public List<string> FileExtNameInclude { get; set; }   
         public bool DeleteEmptyFolder { get; set; }
+        /// <summary>
+        /// 搬到archive目錄的app名稱
+        /// </summary>
+        public string ArchiveAppName { get; set; }
     }
 }
