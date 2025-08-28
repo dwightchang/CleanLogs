@@ -4,6 +4,7 @@
       "LogPath": "D:\\temp",
       "PreservedDays": 300,
       "ZipDays": 301,
+      "ZipHours": 5,
       "DeleteEmptyFolder": false,
       "FileExtNameInclude": [ "*" ],
       "ArchiveAppName": "CleanLogs"
@@ -11,5 +12,6 @@
   ],
   "ArchivePath": "\\\\log.xxx.com\\Logs\\bds.xxx.com",
   "WriteLog": false,
-  "ReadMe": "ArchivePath範例 \\\\log.xxx.com\\Logs\\[fqdn]\\[ip]\\[ArchiveAppName],其中[ip]會由系統抓出主機的ip,有指定ArchiveAppName時,才會將超過PreservedDays的檔案搬到ArchivePath"
+  "ReadMe": "ArchivePath範例 \\\\log.xxx.com\\Logs\\[fqdn]\\[ip]\\[ArchiveAppName],其中[ip]會由系統抓出主機的ip,有指定ArchiveAppName時,才會將超過PreservedDays的檔案搬到ArchivePath",
+  "ReadMe2": "壓縮條件:經過[ZipDays]天[ZipHours]小時後壓縮, ZipDays,ZipHours不指定時,則不壓縮"
 }

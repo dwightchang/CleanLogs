@@ -168,9 +168,11 @@ namespace CleanLogs
                 var lastDatePreserved = DateTime.Now.AddDays(folderConfig.PreservedDays * -1);
                 var zipDate = DateTime.MaxValue;
 
-                if (folderConfig.ZipDays > 0)
+                var zipHours = folderConfig.ZipHours + folderConfig.ZipDays * 24;
+                
+                if (zipHours > 0)
                 {
-                    zipDate = DateTime.Now.AddDays(folderConfig.ZipDays * -1);
+                    zipDate = DateTime.Now.AddHours(zipHours * -1);
                 }
 
                 if (canDelete(folderConfig, filePath) == false)

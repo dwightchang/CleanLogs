@@ -17,6 +17,10 @@ namespace CleanLogs.Model
         /// 超過N天後壓縮檔案
         /// </summary>
         public int ZipDays { get; set; }
+        /// <summary>
+        /// 超過N小時沒修改就壓縮檔案
+        /// </summary>
+        public int ZipHours { get; set; }
         public List<string> FileExtNameInclude { get; set; }   
         public bool DeleteEmptyFolder { get; set; }
         /// <summary>
