@@ -158,96 +158,112 @@ namespace CleanLogs
 
             foreach (var filePath in files)
             {
-                var fileExtension = Path.GetExtension(filePath).ToLower();
-
-                var dtWrite = System.IO.File.GetLastWriteTime(filePath); // 上次寫入時間
-                var dtCreate = System.IO.File.GetCreationTime(filePath); // 建立時間,若用複製的,則會變更建立時間,不會改變寫入時間
-
-                var dt = (dtCreate.CompareTo(dtWrite) > 0) ? dtCreate : dtWrite;
-
-                var lastDatePreserved = DateTime.Now.AddDays(folderConfig.PreservedDays * -1);
-                var zipDate = DateTime.MaxValue;
-
-                var zipHours = folderConfig.ZipHours + folderConfig.ZipDays * 24;
-                
-                if (zipHours > 0)
+                try
                 {
-                    zipDate = DateTime.Now.AddHours(zipHours * -1);
-                }
-
-                if (canDelete(folderConfig, filePath) == false)
-                {
-                    writeLog($"file {filePath} 副檔名不符合刪除條件");
-                    continue;
-                }
-
-                var fileDeleted = false;
-                if (dt.CompareTo(lastDatePreserved) < 0)
-                {
-                    try
+                    var dtWrite = File.GetLastWriteTime(filePath); // 上次寫入時間
+                    var dtCreate = File.GetCreationTime(filePath); // 建立時間,若用複製的,則會變更建立時間,不會改變寫入時間
+                    var fileDate = (dtCreate.CompareTo(dtWrite) > 0) ? dtCreate : dtWrite;
+                    
+                    if (canDelete(folderConfig, filePath) == false)
                     {
-                        fileDeleted = true;
-
-                        if (string.IsNullOrEmpty(folderConfig.ArchiveAppName))
-                        {
-                            File.Delete(filePath);
-                            writeLog($"{filePath} was deleted");    
-                        }
-                        else
-                        {
-                            MoveToArchiveFolder(filePath, folderConfig, config);
-                        }
-                        
-                        Sleep();
-                    }
-                    catch (Exception ex)
-                    {
-                        writeLog(ex.ToString(), true);
-                    }
-                }
-                else
-                {
-                    writeLog($"{filePath} 還未到刪除時間");
-                }
-
-                if (fileDeleted == false)
-                {
-                    if (_zipFileExtensions.Contains(fileExtension))
-                    {
-                        // 不再壓縮
-                        writeLog($"zip file {filePath} 壓縮檔不再壓縮");
+                        writeLog($"file {filePath} 副檔名不符合刪除條件");
                         continue;
                     }
 
-                    // 檢查要不要壓縮
-                    if (dt.CompareTo(zipDate) < 0)
+                    ZipFile(filePath, dtCreate, dtWrite, folderConfig, fileDate);
+                    ArchiveFile(fileDate, folderConfig, filePath, config);
+                }
+                catch (Exception e)
+                {
+                    writeLog($"{filePath},{e}", true);
+                    throw;
+                }
+            }
+        }
+
+        static bool ArchiveFile(DateTime fileDate, LogFolder folderConfig, string filePath, AppSetting config)
+        {
+            var fileDeleted = false;
+            var lastDatePreserved = DateTime.Now.AddDays(folderConfig.PreservedDays * -1);
+            
+            if (fileDate.CompareTo(lastDatePreserved) < 0)
+            {
+                try
+                {
+                    fileDeleted = true;
+
+                    if (string.IsNullOrEmpty(folderConfig.ArchiveAppName))
                     {
-                        try
-                        {
-                            var zipFilePath = SevenZipFile(filePath);
-
-                            if(!string.IsNullOrEmpty(zipFilePath))
-                            {
-                                File.SetLastWriteTime(zipFilePath, dtWrite);
-                                File.SetCreationTime(zipFilePath, dtCreate);
-                            }
-
-                            // 壓縮完成後刪除
-                            File.Delete(filePath);
-                            writeLog($"{filePath} was deleted after zipped");
-
-                            Sleep();
-                        }
-                        catch (Exception e)
-                        {
-                            writeLog(e.ToString(), true);
-                        }
+                        File.Delete(filePath);
+                        writeLog($"{filePath} was deleted");    
                     }
                     else
                     {
-                        writeLog($"{filePath} 還未到壓縮時間");
+                        MoveToArchiveFolder(filePath, folderConfig, config);
                     }
+                        
+                    Sleep();
                 }
+                catch (Exception ex)
+                {
+                    writeLog($"{filePath}, {ex}", true);
+                }
+            }
+            else
+            {
+                writeLog($"{filePath} 還未到刪除時間");
+            }
+
+            return fileDeleted;
+        }
+
+        static void ZipFile(string filePath, DateTime dtCreate, DateTime dtWrite, LogFolder folderConfig, DateTime fileDate)
+        {
+            var fileExtension = Path.GetExtension(filePath).ToLower();
+            
+            var zipDate = DateTime.MaxValue;
+
+            var zipHours = folderConfig.ZipHours + folderConfig.ZipDays * 24;
+                
+            if (zipHours > 0)
+            {
+                zipDate = DateTime.Now.AddHours(zipHours * -1);
+            }
+            
+            if (_zipFileExtensions.Contains(fileExtension))
+            {
+                // 不再壓縮
+                writeLog($"zip file {filePath} 壓縮檔不再壓縮");
+                return;
+            }
+
+            // 檢查要不要壓縮
+            if (fileDate.CompareTo(zipDate) < 0)
+            {
+                try
+                {
+                    var zipFilePath = SevenZipFile(filePath);
+
+                    if(!string.IsNullOrEmpty(zipFilePath))
+                    {
+                        File.SetLastWriteTime(zipFilePath, dtWrite);
+                        File.SetCreationTime(zipFilePath, dtCreate);
+                    }
+
+                    // 壓縮完成後刪除
+                    File.Delete(filePath);
+                    writeLog($"{filePath} was deleted after zipped");
+
+                    Sleep();
+                }
+                catch (Exception e)
+                {
+                    writeLog(e.ToString(), true);
+                }
+            }
+            else
+            {
+                writeLog($"{filePath} 還未到壓縮時間");
             }
         }
 
@@ -282,7 +298,16 @@ namespace CleanLogs
             
             var destPath = $"{destFolder}\\{fileName}";
 
-            File.Move(filePath, destPath);
+            try
+            {
+                File.Move(filePath, destPath);
+            }
+            catch (Exception e)
+            {
+                writeLog($"{filePath} 移動到 {destPath} 發生錯誤, {e}", true);
+                throw;
+            }
+            
             writeLog($"檔案已搬移到: {destPath}");
         }
 
