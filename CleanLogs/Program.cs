@@ -53,7 +53,7 @@ namespace CleanLogs
             }
             catch (Exception ex)
             {
-                writeLog(ex.ToString(), true);
+                WriteLog(ex.ToString(), true);
             }
         }
 
@@ -80,29 +80,29 @@ namespace CleanLogs
                     {
                         if (folder.LogPath.Trim().Length == 0)
                         {
-                            writeLog($"folder {folder.LogPath} was ignored");
+                            WriteLog($"folder {folder.LogPath} was ignored");
                             continue;
                         }
 
                         if (Directory.Exists(folder.LogPath) == false)
                         {
-                            writeLog($"folder {folder.LogPath} not exists", true);
+                            WriteLog($"folder {folder.LogPath} not exists", true);
                             continue;
                         }
                         
-                        writeLog($"process folder {folder.LogPath}");
+                        WriteLog($"process folder {folder.LogPath}");
                         
                         CleanFolder(folder.LogPath, folder, config);
                     }
                     catch (Exception ex)
                     {
-                        writeLog(ex.ToString(), true);
+                        WriteLog(ex.ToString(), true);
                     }
                 } // end for
             }
             catch (Exception ex)
             {
-                writeLog(ex.ToString(), true);
+                WriteLog(ex.ToString(), true);
             }
         }
 
@@ -121,7 +121,7 @@ namespace CleanLogs
             }
             catch (Exception e)
             {
-                writeLog(e.ToString(), true);
+                WriteLog(e.ToString(), true);
                 return;
             }
 
@@ -137,7 +137,7 @@ namespace CleanLogs
             // ignored folder
             if (_excludeFolders.Any(ef => folderNames.Any(f => f?.ToLower() == ef?.ToLower())))
             {
-                writeLog($"folder {folderConfig.LogPath} was ignored");
+                WriteLog($"folder {folderConfig.LogPath} was ignored");
                 return;
             }
 
@@ -152,7 +152,7 @@ namespace CleanLogs
                 }
                 catch (Exception e)
                 {
-                    writeLog($"delete folder {folderPath} error, {e}", true);
+                    WriteLog($"delete folder {folderPath} error, {e}", true);
                 }
             }
 
@@ -166,7 +166,7 @@ namespace CleanLogs
                     
                     if (canDelete(folderConfig, filePath) == false)
                     {
-                        writeLog($"file {filePath} 副檔名不符合刪除條件");
+                        WriteLog($"file {filePath} 副檔名不符合刪除條件");
                         continue;
                     }
 
@@ -175,7 +175,7 @@ namespace CleanLogs
                 }
                 catch (Exception e)
                 {
-                    writeLog($"{filePath},{e}", true);
+                    WriteLog($"{filePath},{e}", true);
                     throw;
                 }
             }
@@ -195,7 +195,7 @@ namespace CleanLogs
                     if (string.IsNullOrEmpty(folderConfig.ArchiveAppName))
                     {
                         File.Delete(filePath);
-                        writeLog($"{filePath} was deleted");    
+                        WriteLog($"{filePath} was deleted");    
                     }
                     else
                     {
@@ -206,12 +206,12 @@ namespace CleanLogs
                 }
                 catch (Exception ex)
                 {
-                    writeLog($"{filePath}, {ex}", true);
+                    WriteLog($"{filePath}, {ex}", true);
                 }
             }
             else
             {
-                writeLog($"{filePath} 還未到刪除時間");
+                WriteLog($"{filePath} 還未到刪除時間");
             }
 
             return fileDeleted;
@@ -233,7 +233,7 @@ namespace CleanLogs
             if (_zipFileExtensions.Contains(fileExtension))
             {
                 // 不再壓縮
-                writeLog($"zip file {filePath} 壓縮檔不再壓縮");
+                WriteLog($"zip file {filePath} 壓縮檔不再壓縮");
                 return;
             }
 
@@ -252,18 +252,18 @@ namespace CleanLogs
 
                     // 壓縮完成後刪除
                     File.Delete(filePath);
-                    writeLog($"{filePath} was deleted after zipped");
+                    WriteLog($"{filePath} was deleted after zipped");
 
                     Sleep();
                 }
                 catch (Exception e)
                 {
-                    writeLog(e.ToString(), true);
+                    WriteLog(e.ToString(), true);
                 }
             }
             else
             {
-                writeLog($"{filePath} 還未到壓縮時間");
+                WriteLog($"{filePath} 還未到壓縮時間");
             }
         }
 
@@ -271,7 +271,7 @@ namespace CleanLogs
         {
             if (string.IsNullOrEmpty(config.ArchivePath) || string.IsNullOrEmpty(folderConfig.ArchiveAppName))
             {
-                writeLog("ArchivePath or ArchiveAppName is not set, skip moving to archive folder");
+                WriteLog("ArchivePath or ArchiveAppName is not set, skip moving to archive folder");
                 return;
             }
             
@@ -300,15 +300,22 @@ namespace CleanLogs
 
             try
             {
-                File.Move(filePath, destPath);
+                if (File.Exists(destPath))
+                {
+                    File.Delete(filePath);
+                    WriteLog($"目的端檔案已存在,已刪除來源檔案: {destPath}");
+                }
+                else
+                {
+                    File.Move(filePath, destPath);
+                    WriteLog($"檔案已搬移到: {destPath}");
+                }
             }
             catch (Exception e)
             {
-                writeLog($"{filePath} 移動到 {destPath} 發生錯誤, {e}", true);
+                WriteLog($"{filePath} 移動到 {destPath} 發生錯誤, {e}", true);
                 throw;
             }
-            
-            writeLog($"檔案已搬移到: {destPath}");
         }
 
         static string ZipFile(string filePath)
@@ -327,7 +334,7 @@ namespace CleanLogs
                 if (File.Exists(zipFilePath) == false)
                 {
                     zip.Save(zipFilePath);
-                    writeLog($"{filePath} was zipped");
+                    WriteLog($"{filePath} was zipped");
                 }
             }
 
@@ -357,7 +364,7 @@ namespace CleanLogs
             Thread.Sleep(300);
         }
 
-        static void writeLog(string msg, bool force = false)
+        static void WriteLog(string msg, bool force = false)
         {
             Console.WriteLine(msg);
 
@@ -373,7 +380,7 @@ namespace CleanLogs
                 Directory.CreateDirectory(folderPath);
             }
 
-            StreamWriter w = File.AppendText($"{folderPath}\\CleanLogs.log");
+            StreamWriter w = File.AppendText($"{folderPath}\\{DateTime.Now:yyyyMMdd}.log");
             msg = $"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")} {msg}";
             w.WriteLine(msg);
             w.Close();
